@@ -5,7 +5,7 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Call GitHub API
+      - name: Fetch and filter PRs
         env:
           DEV_OPS_TOKEN: ${{ secrets.DEV_OPS_TOKEN }}
           OWNER_NAME: kenta872
@@ -23,15 +23,35 @@ jobs:
           
           # 環境変数で指定されたラベルのPRをフィルタリング
           echo "Filtering PRs with label '${TARGET_LABEL}'..."
-          jq "[.[] | select(.labels | any(.name == \"$TARGET_LABEL\"))] | .[].html_url" all_prs.json > target_label_prs_urls.json
+          jq "[.[] | select(.labels | any(.name == \"$TARGET_LABEL\"))] | .[].url" all_prs.json > target_label_prs_urls.json
           
-          echo "PRs with label '${TARGET_LABEL}' output:"
+          echo "PRs with label '${TARGET_LABEL}' URLs:"
           cat target_label_prs_urls.json
           
-          # 該当するPRがある場合はリンクを出力
-          if [ -s target_label_prs_urls.json ]; then
-            echo "ラベルが'${TARGET_LABEL}'のPRのリンク一覧:"
-            cat target_label_prs_urls.json
-          else
+          # ラベルに一致するPRがない場合は終了
+          if [ ! -s target_label_prs_urls.json ]; then
             echo "ラベルが'${TARGET_LABEL}'のPRはありません。"
+            exit 0
+          fi
+          
+          # URLごとに詳細情報を取得して`mergeable`がtrueのものをフィルタリング
+          echo "Checking 'mergeable' status for PRs..."
+          > mergeable_prs_urls.json  # 出力ファイルを初期化
+          while read -r pr_url; do
+            pr_details=$(curl -s -H "Authorization: token $DEV_OPS_TOKEN" "$pr_url")
+            mergeable=$(echo "$pr_details" | jq '.mergeable')
+            if [ "$mergeable" == "true" ]; then
+              echo "$pr_url" >> mergeable_prs_urls.json
+            fi
+          done < target_label_prs_urls.json
+          
+          echo "Mergeable PRs URLs:"
+          cat mergeable_prs_urls.json
+          
+          # マージ可能なPRがない場合
+          if [ ! -s mergeable_prs_urls.json ]; then
+            echo "マージ可能なPRはありません。"
+          else
+            echo "マージ可能なPRのリンク一覧:"
+            cat mergeable_prs_urls.json
           fi
