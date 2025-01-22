@@ -5,6 +5,10 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+
       - name: Fetch and filter PRs
         env:
           DEV_OPS_TOKEN: ${{ secrets.DEV_OPS_TOKEN }}
@@ -14,45 +18,51 @@ jobs:
         run: |
           # GitHub APIからPRを取得
           echo "Fetching Pull Requests..."
-          curl -H "Authorization: token $DEV_OPS_TOKEN" \
-               https://api.github.com/repos/$OWNER_NAME/$REPO_NAME/pulls \
-          | jq '.' > all_prs.json || { echo "Failed to fetch PRs"; exit 1; }
-          
-          echo "All PRs fetched. Outputting to console:"
-          cat all_prs.json
-          
+          prs=$(curl -s -H "Authorization: token $DEV_OPS_TOKEN" \
+                 https://api.github.com/repos/$OWNER_NAME/$REPO_NAME/pulls)
+          if [ $? -ne 0 ]; then
+            echo "Failed to fetch PRs"
+            exit 1
+          fi
+          echo "$prs" | jq '.' > all_prs.json
+          echo "Fetched PRs JSON: $prs"
+
           # 環境変数で指定されたラベルのPRをフィルタリング
           echo "Filtering PRs with label '${TARGET_LABEL}'..."
-          jq "[.[] | select(.labels and (.labels | any(.name == \"$TARGET_LABEL\")))] | .[].url" all_prs.json > target_label_prs_urls.json || { echo "Error filtering PRs"; exit 2; }
-          
-          echo "PRs with label '${TARGET_LABEL}' URLs:"
-          cat target_label_prs_urls.json
-          
+          echo "$prs" | jq "[.[] | select(.labels and (.labels | any(.name == \"$TARGET_LABEL\")))] | .[].url" \
+            | tr -d '"' > target_label_prs_urls.json
+          if [ $? -ne 0 ]; then
+            echo "Failed to filter PRs with label '${TARGET_LABEL}'"
+            exit 2
+          fi
+
           # ラベルに一致するPRがない場合は終了
           if [ ! -s target_label_prs_urls.json ]; then
             echo "ラベルが'${TARGET_LABEL}'のPRはありません。"
             exit 0
           fi
-          
+
           # URLごとに詳細情報を取得して`mergeable`がtrueのものをフィルタリング
           echo "Checking 'mergeable' status for PRs..."
           > mergeable_prs_urls.json
-          echo "test echo"
           while read -r pr_url; do
             pr_details=$(curl -s -H "Authorization: token $DEV_OPS_TOKEN" "$pr_url")
+            if [ $? -ne 0 ]; then
+              echo "Failed to fetch details for $pr_url"
+              continue
+            fi
+            echo "Fetched PR details: $pr_details"
+
             mergeable=$(echo "$pr_details" | jq '.mergeable // empty')
             if [ "$mergeable" == "true" ]; then
               echo "$pr_url" >> mergeable_prs_urls.json
             fi
           done < target_label_prs_urls.json
-          
+          echo "test echo"
+
           echo "Mergeable PRs URLs:"
-          cat mergeable_prs_urls.json
-          
-          # マージ可能なPRがない場合
           if [ ! -s mergeable_prs_urls.json ]; then
             echo "マージ可能なPRはありません。"
           else
-            echo "マージ可能なPRのリンク一覧:"
             cat mergeable_prs_urls.json
           fi
