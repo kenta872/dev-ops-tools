@@ -5,10 +5,6 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y jq
-
       - name: Fetch and filter PRs
         env:
           DEV_OPS_TOKEN: ${{ secrets.DEV_OPS_TOKEN }}
@@ -42,23 +38,35 @@ jobs:
             exit 0
           fi
 
-          # URLごとに詳細情報を取得して`mergeable`がtrueのものをフィルタリング
-          echo "Checking 'mergeable' status for PRs..."
+          # URLごとに詳細情報を取得して`mergeable_state`が`clean`のものをフィルタリング
+          echo "Checking 'mergeable_state' for PRs..."
           > mergeable_prs_urls.json
-          while read -r pr_url; do
-            pr_details=$(curl -s -H "Authorization: token $DEV_OPS_TOKEN" "$pr_url")
-            if [ $? -ne 0 ]; then
-              echo "Failed to fetch details for $pr_url"
-              continue
-            fi
-            echo "Fetched PR details: $pr_details"
+          max_retries=5
+          retry_delay=30  # 再試行するまでの待機時間（秒）
 
-            mergeable=$(echo "$pr_details" | jq '.mergeable')
-            if [ "$mergeable" == true ]; then
-              echo "$pr_url" >> mergeable_prs_urls.json
-            fi
+          while read -r pr_url; do
+            retries=0
+            while [ $retries -lt $max_retries ]; do
+              pr_details=$(curl -s -H "Authorization: token $DEV_OPS_TOKEN" "$pr_url")
+              if [ $? -ne 0 ]; then
+                echo "Failed to fetch details for $pr_url"
+                continue
+              fi
+              echo "Fetched PR details: $pr_details"
+
+              mergeable_state=$(echo "$pr_details" | jq -r '.mergeable_state // empty')
+              if [ "$mergeable_state" == "clean" ]; then
+                echo "$pr_url" >> mergeable_prs_urls.json
+                break
+              elif [ "$mergeable_state" == "unknown" ]; then
+                echo "mergeable_state is unknown. Retrying in $retry_delay seconds..."
+                sleep $retry_delay
+                retries=$((retries + 1))
+              else
+                break
+              fi
+            done
           done < target_label_prs_urls.json
-          echo "test echo"
 
           echo "Mergeable PRs URLs:"
           if [ ! -s mergeable_prs_urls.json ]; then
