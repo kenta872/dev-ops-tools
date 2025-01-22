@@ -1,0 +1,36 @@
+on:
+  # schedule:
+  #   - cron: "0 10 * * *"  # 毎日10:00に実行
+  workflow_dispatch:  # 手動実行用
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call GitHub API
+        env:
+          DEV_OPS_TOKEN: ${{ secrets.DEV_OPS_TOKEN }}
+        run: |
+          # GitHub APIからPRを取得
+          echo "Fetching Pull Requests..."
+          curl -H "Authorization: token $DEV_OPS_TOKEN" \
+               https://api.github.com/repos/kenta872/dev-ops-tools/pulls \
+          | jq '.' > all_prs.json
+          
+          echo "All PRs fetched. Outputting to console:"
+          cat all_prs.json
+          
+          # マージ可能なPRをフィルタリング
+          echo "Filtering mergeable PRs..."
+          jq '[.[] | select(.mergeable == true)]' all_prs.json > mergeable_prs.json
+          
+          echo "Mergeable PRs output:"
+          cat mergeable_prs.json
+          
+          # マージ可能なPRがある場合はリンクを出力
+          if [ -s mergeable_prs.json ]; then
+            echo "マージ可能なPRのリンク一覧:"
+            jq -r '.[].html_url' mergeable_prs.json
+          else
+            echo "マージ可能なPRはありません。"
+          fi
