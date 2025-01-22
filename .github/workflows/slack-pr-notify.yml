@@ -16,14 +16,14 @@ jobs:
           echo "Fetching Pull Requests..."
           curl -H "Authorization: token $DEV_OPS_TOKEN" \
                https://api.github.com/repos/$OWNER_NAME/$REPO_NAME/pulls \
-          | jq '.' > all_prs.json
+          | jq '.' > all_prs.json || { echo "Failed to fetch PRs"; exit 1; }
           
           echo "All PRs fetched. Outputting to console:"
           cat all_prs.json
           
           # 環境変数で指定されたラベルのPRをフィルタリング
           echo "Filtering PRs with label '${TARGET_LABEL}'..."
-          jq "[.[] | select(.labels | any(.name == \"$TARGET_LABEL\"))] | .[].url" all_prs.json > target_label_prs_urls.json
+          jq "[.[] | select(.labels and (.labels | any(.name == \"$TARGET_LABEL\")))] | .[].url" all_prs.json > target_label_prs_urls.json || { echo "Error filtering PRs"; exit 2; }
           
           echo "PRs with label '${TARGET_LABEL}' URLs:"
           cat target_label_prs_urls.json
@@ -39,7 +39,7 @@ jobs:
           > mergeable_prs_urls.json  # 出力ファイルを初期化
           while read -r pr_url; do
             pr_details=$(curl -s -H "Authorization: token $DEV_OPS_TOKEN" "$pr_url")
-            mergeable=$(echo "$pr_details" | jq '.mergeable')
+            mergeable=$(echo "$pr_details" | jq '.mergeable // empty')
             if [ "$mergeable" == "true" ]; then
               echo "$pr_url" >> mergeable_prs_urls.json
             fi
