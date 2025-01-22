@@ -1,6 +1,4 @@
 on:
-  # schedule:
-  #   - cron: "0 10 * * *"  # 毎日10:00に実行
   workflow_dispatch:  # 手動実行用
 
 jobs:
@@ -20,17 +18,17 @@ jobs:
           echo "All PRs fetched. Outputting to console:"
           cat all_prs.json
           
-          # マージ可能なPRをフィルタリング
-          echo "Filtering mergeable PRs..."
-          jq '[.[] | select(.mergeable == true)]' all_prs.json > mergeable_prs.json
+          # ラベルが"bug"のPRをフィルタリング
+          echo "Filtering PRs with label 'bug'..."
+          jq '[.[] | select(.labels | any(.name == "bug"))] | .[].html_url' all_prs.json > bug_prs_urls.json
           
-          echo "Mergeable PRs output:"
-          cat mergeable_prs.json
+          echo "PRs with label 'bug' output:"
+          cat bug_prs_urls.json
           
-          # マージ可能なPRがある場合はリンクを出力
-          if [ -s mergeable_prs.json ]; then
-            echo "マージ可能なPRのリンク一覧:"
-            jq -r '.[].html_url' mergeable_prs.json
+          # 該当するPRがある場合はリンクを出力
+          if [ -s bug_prs_urls.json ]; then
+            echo "ラベルが'bug'のPRのリンク一覧:"
+            cat bug_prs_urls.json
           else
-            echo "マージ可能なPRはありません。"
+            echo "ラベルが'bug'のPRはありません。"
           fi
