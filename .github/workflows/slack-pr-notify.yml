@@ -53,8 +53,8 @@ jobs:
             fi
             echo "Fetched PR details: $pr_details"
 
-            mergeable=$(echo "$pr_details" | jq '.mergeable // empty')
-            if [ "$mergeable" == "true" ]; then
+            mergeable=$(echo "$pr_details" | jq '.mergeable')
+            if [ "$mergeable" == true ]; then
               echo "$pr_url" >> mergeable_prs_urls.json
             fi
           done < target_label_prs_urls.json
