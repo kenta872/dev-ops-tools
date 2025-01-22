@@ -8,27 +8,30 @@ jobs:
       - name: Call GitHub API
         env:
           DEV_OPS_TOKEN: ${{ secrets.DEV_OPS_TOKEN }}
+          OWNER_NAME: kenta872
+          REPO_NAME: dev-ops-tools
+          TARGET_LABEL: bug
         run: |
           # GitHub APIからPRを取得
           echo "Fetching Pull Requests..."
           curl -H "Authorization: token $DEV_OPS_TOKEN" \
-               https://api.github.com/repos/kenta872/dev-ops-tools/pulls \
+               https://api.github.com/repos/$OWNER_NAME/$REPO_NAME/pulls \
           | jq '.' > all_prs.json
           
           echo "All PRs fetched. Outputting to console:"
           cat all_prs.json
           
-          # ラベルが"bug"のPRをフィルタリング
-          echo "Filtering PRs with label 'bug'..."
-          jq '[.[] | select(.labels | any(.name == "bug"))] | .[].html_url' all_prs.json > bug_prs_urls.json
+          # 環境変数で指定されたラベルのPRをフィルタリング
+          echo "Filtering PRs with label '${TARGET_LABEL}'..."
+          jq "[.[] | select(.labels | any(.name == \"$TARGET_LABEL\"))] | .[].html_url" all_prs.json > target_label_prs_urls.json
           
-          echo "PRs with label 'bug' output:"
-          cat bug_prs_urls.json
+          echo "PRs with label '${TARGET_LABEL}' output:"
+          cat target_label_prs_urls.json
           
           # 該当するPRがある場合はリンクを出力
-          if [ -s bug_prs_urls.json ]; then
-            echo "ラベルが'bug'のPRのリンク一覧:"
-            cat bug_prs_urls.json
+          if [ -s target_label_prs_urls.json ]; then
+            echo "ラベルが'${TARGET_LABEL}'のPRのリンク一覧:"
+            cat target_label_prs_urls.json
           else
-            echo "ラベルが'bug'のPRはありません。"
+            echo "ラベルが'${TARGET_LABEL}'のPRはありません。"
           fi
