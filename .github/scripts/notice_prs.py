@@ -50,7 +50,7 @@ def filter_prs_by_label(prs, label):
 
 def check_mergeable_state(pr_url):
     max_retries = 5
-    retry_delay = 30
+    retry_delay = 5
     retries = 0
 
     while retries < max_retries:
@@ -84,18 +84,18 @@ def main():
 
     print("Checking 'mergeable_state' for PRs...")
     for pr in filtered_prs:
-        pr_url = pr["url"]
+        pr_url = pr["html_url"]
         state = check_mergeable_state(pr_url)
         if state == "mergeable":
             mergeable_prs.append(pr_url)
         elif state == "pending":
             pending_prs.append(pr_url)
 
-    with open("mergeable_prs_urls.json", "w") as file:
-        json.dump(mergeable_prs, file, indent=2)
+    # with open("mergeable_prs_urls.json", "w") as file:
+    #     json.dump(mergeable_prs, file, indent=2)
 
-    with open("pending_prs_urls.json", "w") as file:
-        json.dump(pending_prs, file, indent=2)
+    # with open("pending_prs_urls.json", "w") as file:
+    #     json.dump(pending_prs, file, indent=2)
 
     print("Mergeable PRs URLs:")
     if mergeable_prs:
