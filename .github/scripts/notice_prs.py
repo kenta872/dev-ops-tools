@@ -87,9 +87,9 @@ def main():
         pr_url = pr["url"]
         state = check_mergeable_state(pr_url)
         if state == "mergeable":
-            mergeable_prs.append(pr_url)
+            mergeable_prs.append(pr["html_url"])
         elif state == "pending":
-            pending_prs.append(pr_url)
+            pending_prs.append(pr["html_url"])
 
     with open("mergeable_prs_urls.json", "w") as file:
         json.dump(mergeable_prs, file, indent=2)
