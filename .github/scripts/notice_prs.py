@@ -91,11 +91,11 @@ def main():
         elif state == "pending":
             pending_prs.append(pr_url)
 
-    # with open("mergeable_prs_urls.json", "w") as file:
-    #     json.dump(mergeable_prs, file, indent=2)
+    with open("mergeable_prs_urls.json", "w") as file:
+        json.dump(mergeable_prs, file, indent=2)
 
-    # with open("pending_prs_urls.json", "w") as file:
-    #     json.dump(pending_prs, file, indent=2)
+    with open("pending_prs_urls.json", "w") as file:
+        json.dump(pending_prs, file, indent=2)
 
     print("Mergeable PRs URLs:")
     if mergeable_prs:
