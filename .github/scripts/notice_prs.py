@@ -45,7 +45,7 @@ def filter_prs_by_label(prs, label):
         if any(l["name"] == label for l in pr.get("labels", []))
     ]
     with open("target_label_prs_urls.json", "w") as file:
-        json.dump([pr["url"] for pr in filtered_prs], file, indent=2)
+        json.dump([pr["html_url"] for pr in filtered_prs], file, indent=2)
     return filtered_prs
 
 def check_mergeable_state(pr_url):
