@@ -22,7 +22,7 @@ jobs:
           OWNER_NAME: kenta872
           REPO_NAME: dev-ops-tools
           TARGET_LABEL: bug
-        run: python .github/scripts/fetch_prs.py
+        run: python .github/scripts/notice_prs.py
 
 
 # jobs:
