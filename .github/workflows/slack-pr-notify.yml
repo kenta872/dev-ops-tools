@@ -19,9 +19,6 @@ jobs:
       - name: Run Python script
         env:
           DEV_OPS_TOKEN: ${{ secrets.DEV_OPS_TOKEN }}
-          OWNER_NAME: kenta872
-          REPO_NAME: dev-ops-tools
-          TARGET_LABEL: bug
         run: python .github/scripts/notice_prs.py
 
 
