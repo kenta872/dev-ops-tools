@@ -50,7 +50,7 @@ def filter_prs_by_label(prs, label):
 
 def check_mergeable_state(pr_url):
     max_retries = 5
-    retry_delay = 30
+    retry_delay = 5
     retries = 0
 
     while retries < max_retries:
