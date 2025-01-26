@@ -19,6 +19,7 @@ jobs:
       - name: Run Python script
         env:
           DEV_OPS_TOKEN: ${{ secrets.DEV_OPS_TOKEN }}
+          WEBHOOK_TEST: ${{ secrets.WEBHOOK_TEST }}
         run: python .github/scripts/notice_prs.py
 
 
