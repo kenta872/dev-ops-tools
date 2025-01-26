@@ -121,7 +121,7 @@ def main():
     }
 
     # Slackに送信
-    response = requests.post(slack_webhook_url, json=payload)
+    response = requests.post(WEBHOOK_URL, json=payload)
 
     # 結果を確認
     if response.status_code == 200:
