@@ -36,6 +36,9 @@ def filter_prs(prs, label):
         # ラベルとドラフト状態のフィルタリング
         if any(l["name"] == label for l in pr.get("labels", [])) and not pr.get("draft", True):
             # requested_reviewersが2件未満の場合はwaiting_prsに、それ以外はcomplete_prsに仕分け
+            print("##########################")
+            print(pr.get("requested_reviewers", []))
+            print("##########################")
             if len(pr.get("requested_reviewers", [])) < REVIEWER_COUNT_LIMIT:
                 waiting_prs.append(pr["html_url"])
             else:
