@@ -7,39 +7,35 @@ from typing import List
 
 # 設定ファイルのパス
 CONFIG_FILE_PATH = ".github/scripts/config.json"
+# 環境変数から値を取得
+DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
+# PR情報を格納するためのファイル名
+ALL_PRS_FILE_NAME = "all_prs.json"
+FILTERED_PRS_FILE_NAME = "filtered_prs.json"
 
 def load_configs():
     with open(CONFIG_FILE_PATH, "r") as file:
         return json.load(file)
 
-# 設定を読み込む
-
-# 環境変数から値を取得
-DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
-
-
-
-
-
-def fetch_prs():
+def fetch_prs(base_url, base_headers):
     print("Fetching Pull Requests...")
-    response = requests.get(BASE_URL, headers=HEADERS)
+    response = requests.get(base_url, headers=base_headers)
     if response.status_code != 200:
         print(f"Failed to fetch PRs: {response.status_code}")
         exit(1)
 
     prs = response.json()
-    with open("all_prs.json", "w") as file:
+    with open(ALL_PRS_FILE_NAME, "w") as file:
         json.dump(prs, file, indent=2)
     return prs
 
-def filter_prs_by_label(prs, label):
+def filter_prs(prs, label):
     print(f"Filtering PRs with label '{label}'...")
     filtered_prs = [
         pr for pr in prs
-        if any(l["name"] == label for l in pr.get("labels", []))
+        if any(l["name"] == label for l in pr.get("labels", [])) and not pr.get("draft", True)
     ]
-    with open("target_label_prs_urls.json", "w") as file:
+    with open(FILTERED_PRS_FILE_NAME, "w") as file:
         json.dump([pr["html_url"] for pr in filtered_prs], file, indent=2)
     return filtered_prs
 
@@ -90,14 +86,12 @@ def send_notification(waiting_prs: List[str], complete_prs: List[str], webhook_u
 def main():
     configs = load_configs()
     for config in configs:
-        # 環境変数からWebhook URLを取得
+        # 設定情報の読み込み
         webhook_url = os.getenv(config["webhook_secret_name"])
         repo_name = config["repo_name"]
         owner_name = config["owner_name"]
         target_label = config["target_label"]
-        # GitHub APIのベースURL
-        base_url = f"https://api.github.com/repos/{owner_name}/{repo_name}/pulls"
-        headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
+
         if webhook_url is None:
             print(f"webhook_url URL not found. Skipping...")
             continue
@@ -110,6 +104,12 @@ def main():
         if target_label is None:
             print(f"target_label URL not found. Skipping...")
             continue
+
+        base_url = f"https://api.github.com/repos/{owner_name}/{repo_name}/pulls"
+        headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
+        all_prs = fetch_prs(base_url, headers)
+        filtered_prs = filter_prs(all_prs, TARGET_LABEL)
+        print(filtered_prs)
         
         waiting_prs = ["https://github.com/kenta872/dev-ops-tools/pull/3","https://github.com/kenta872/dev-ops-tools/pull/2"]
         complete_prs = ["https://github.com/kenta872/dev-ops-tools/pull/2"]
