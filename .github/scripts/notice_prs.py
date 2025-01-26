@@ -105,19 +105,19 @@ def main():
     #     print("No pending PRs found.")
 
     # メッセージを整形
-    # text = """
-    # :heavy_check_mark: レビュー待ちのPR
-    # https://github.com/kenta872/dev-ops-tools/pull/3
-    # https://github.com/kenta872/dev-ops-tools/pull/2
+    text = """
+    :heavy_check_mark: レビュー待ちのPR
+    https://github.com/kenta872/dev-ops-tools/pull/3
+    https://github.com/kenta872/dev-ops-tools/pull/2
 
-    # :white_check_mark: レビューが完了しているPR
-    # https://github.com/kenta872/dev-ops-tools/pull/3
-    # https://github.com/kenta872/dev-ops-tools/pull/2
-    # """
+    :white_check_mark: レビューが完了しているPR
+    https://github.com/kenta872/dev-ops-tools/pull/3
+    https://github.com/kenta872/dev-ops-tools/pull/2
+    """
 
     # ペイロードを作成
     payload = {
-        "text": "Hello, World!"
+        "text": text
     }
 
     # Slackに送信
