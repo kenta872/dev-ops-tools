@@ -105,15 +105,13 @@ def main():
     #     print("No pending PRs found.")
 
     # メッセージを整形
-    text = """
-    :heavy_check_mark: レビュー待ちのPR
-    https://github.com/kenta872/dev-ops-tools/pull/3
-    https://github.com/kenta872/dev-ops-tools/pull/2
-
-    :white_check_mark: レビューが完了しているPR
-    https://github.com/kenta872/dev-ops-tools/pull/3
-    https://github.com/kenta872/dev-ops-tools/pull/2
-    """
+    textA = ":heavy_check_mark: レビュー待ちのPR"
+    textB = ":white_check_mark: レビューが完了しているPR"
+    textC = "https://github.com/kenta872/dev-ops-tools/pull/3"
+    textD = "https://github.com/kenta872/dev-ops-tools/pull/2"
+    textE = "https://github.com/kenta872/dev-ops-tools/pull/3"
+    textF = "https://github.com/kenta872/dev-ops-tools/pull/2"
+    text = f"{textA}\n{textC}\n{textD}\n{textB}\n{textE}\n{textF}"
 
     # ペイロードを作成
     payload = {
