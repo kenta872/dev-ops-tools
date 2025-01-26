@@ -3,6 +3,7 @@ import os
 import requests
 import time
 import json
+from typing import List
 
 # 設定ファイルのパス
 CONFIG_FILE_PATH = ".github/scripts/config.json"
