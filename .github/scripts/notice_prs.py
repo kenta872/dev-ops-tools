@@ -117,11 +117,12 @@ def main():
 
     # ペイロードを作成
     payload = {
-        "text": text
+        "text": "Hello, World!"
     }
 
     # Slackに送信
     response = requests.post(WEBHOOK_URL, json=payload)
+    response = requests.post(WEBHOOK_URL, json=payload, headers={'Content-Type': 'application/json'})
 
     # 結果を確認
     if response.status_code == 200:
