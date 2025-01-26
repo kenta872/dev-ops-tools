@@ -38,9 +38,9 @@ def filter_prs(prs, label):
         if any(l["name"] == label for l in pr.get("labels", [])) and not pr.get("draft", True):
             # requested_reviewersが2件未満の場合はwaiting_prsに、それ以外はcomplete_prsに仕分け
             if len(pr.get("requested_reviewers", [])) < 2:
-                waiting_prs.append(pr)
+                waiting_prs.append(pr["html_url"])
             else:
-                complete_prs.append(pr)
+                complete_prs.append(pr["html_url"])
     return waiting_prs, complete_prs
 
 def check_mergeable_state(pr_url):
