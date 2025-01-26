@@ -44,17 +44,17 @@ def filter_prs(prs, label):
 
 def send_notification(waiting_prs: List[str], complete_prs: List[str], webhook_url: str):
     # メッセージを整形
-    waitingForReviewTitle = ":heavy_check_mark: レビュー待ちのPR"
+    waitingForReviewTitle = ":両目: レビュー待ちのPR"
     if waiting_prs:
         waitingPrsText = "\n".join(waiting_prs)
     else:
-        waitingPrsText = "レビュー待ちのPRはありません！"
+        waitingPrsText = ":クラッカー: レビュー待ちのPRはありません! :クラッカー:"
 
     completeForReviewTitle = ":white_check_mark: レビューが完了しているPR"
     if complete_prs:
         completePrsText = "\n".join(waiting_prs)
     else:
-        completePrsText = "レビュー待ちのPRはありません！"
+        completePrsText = "マージ待ちのPRはありませ!"
 
     text = f"{waitingForReviewTitle}\n{waitingPrsText}\n\n{completeForReviewTitle}\n{completePrsText}"
     # ペイロードを作成
