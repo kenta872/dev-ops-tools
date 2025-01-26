@@ -108,7 +108,7 @@ def main():
         base_url = f"https://api.github.com/repos/{owner_name}/{repo_name}/pulls"
         headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
         all_prs = fetch_prs(base_url, headers)
-        filtered_prs = filter_prs(all_prs, TARGET_LABEL)
+        filtered_prs = filter_prs(all_prs, target_label)
         print(filtered_prs)
         
         waiting_prs = ["https://github.com/kenta872/dev-ops-tools/pull/3","https://github.com/kenta872/dev-ops-tools/pull/2"]
