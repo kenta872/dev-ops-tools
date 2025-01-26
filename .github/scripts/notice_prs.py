@@ -10,7 +10,7 @@ CONFIG_FILE_PATH = ".github/scripts/config.json"
 DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
 # PR情報を格納するためのファイル名
 ALL_PRS_FILE_NAME = "all_prs.json"
-REVIEWER_COUNT_LIMIT=2
+REVIEWER_COUNT_LIMIT=1
 
 def load_configs():
     with open(CONFIG_FILE_PATH, "r") as file:
@@ -25,7 +25,7 @@ def fetch_prs(base_url, base_headers):
 
     prs = response.json()
     with open(ALL_PRS_FILE_NAME, "w") as file:
-        json.dump(prs, file, indent=1)
+        json.dump(prs, file, indent=2)
     return prs
 
 def filter_prs(prs, label):
@@ -36,9 +36,6 @@ def filter_prs(prs, label):
         # ラベルとドラフト状態のフィルタリング
         if any(l["name"] == label for l in pr.get("labels", [])) and not pr.get("draft", True):
             # requested_reviewersが2件未満の場合はwaiting_prsに、それ以外はcomplete_prsに仕分け
-            print("##########################")
-            print(pr.get("requested_reviewers", []))
-            print("##########################")
             if len(pr.get("requested_reviewers", [])) < REVIEWER_COUNT_LIMIT:
                 waiting_prs.append(pr["html_url"])
             else:
