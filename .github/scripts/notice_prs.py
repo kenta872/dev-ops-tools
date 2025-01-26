@@ -18,7 +18,7 @@ OWNER_NAME = config["owner_name"]
 TARGET_LABEL = config["target_label"]
 
 # 環境変数から値を取得
-WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
 
 # GitHub APIのベースURL
@@ -121,7 +121,8 @@ def main():
     }
 
     # Slackに送信
-    response = requests.post(WEBHOOK_URL, json=payload, headers={'Content-type': 'application/json'})
+    print(SLACK_WEBHOOK_URL)
+    response = requests.post(SLACK_WEBHOOK_URL, json=payload, headers={'Content-type': 'application/json'})
 
     # 結果を確認
     if response.status_code == 200:
