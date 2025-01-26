@@ -16,9 +16,7 @@ def load_configs():
 # 環境変数から値を取得
 DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
 
-# GitHub APIのベースURL
-BASE_URL = f"https://api.github.com/repos/{OWNER_NAME}/{REPO_NAME}/pulls"
-HEADERS = {"Authorization": f"token {DEV_OPS_TOKEN}"}
+
 
 
 
@@ -96,6 +94,9 @@ def main():
         repo_name = config["repo_name"]
         owner_name = config["owner_name"]
         target_label = config["target_label"]
+        # GitHub APIのベースURL
+        base_url = f"https://api.github.com/repos/{owner_name}/{repo_name}/pulls"
+        headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
         if webhook_url is None:
             print(f"webhook_url URL not found. Skipping...")
             continue
