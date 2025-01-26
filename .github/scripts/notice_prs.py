@@ -16,6 +16,7 @@ config = load_config()
 REPO_NAME = config["repo_name"]
 OWNER_NAME = config["owner_name"]
 TARGET_LABEL = config["target_label"]
+WEBHOOK_URL = config["webhook_url"]
 
 # 環境変数から値を取得
 DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
@@ -72,42 +73,72 @@ def check_mergeable_state(pr_url):
     return "pending"
 
 def main():
-    prs = fetch_prs()
-    filtered_prs = filter_prs_by_label(prs, TARGET_LABEL)
+    # prs = fetch_prs()
+    # filtered_prs = filter_prs_by_label(prs, TARGET_LABEL)
 
-    if not filtered_prs:
-        print(f"No PRs found with label '{TARGET_LABEL}'.")
-        exit(0)
+    # if not filtered_prs:
+    #     print(f"No PRs found with label '{TARGET_LABEL}'.")
+    #     exit(0)
 
-    mergeable_prs = []
-    pending_prs = []
+    # mergeable_prs = []
+    # pending_prs = []
 
-    print("Checking 'mergeable_state' for PRs...")
-    for pr in filtered_prs:
-        pr_url = pr["url"]
-        state = check_mergeable_state(pr_url)
-        if state == "mergeable":
-            mergeable_prs.append(pr["html_url"])
-        elif state == "pending":
-            pending_prs.append(pr["html_url"])
+    # print("Checking 'mergeable_state' for PRs...")
+    # for pr in filtered_prs:
+    #     pr_url = pr["url"]
+    #     state = check_mergeable_state(pr_url)
+    #     if state == "mergeable":
+    #         mergeable_prs.append(pr["html_url"])
+    #     elif state == "pending":
+    #         pending_prs.append(pr["html_url"])
 
-    # with open("mergeable_prs_urls.json", "w") as file:
-    #     json.dump(mergeable_prs, file, indent=2)
+    # print("Mergeable PRs URLs:")
+    # if mergeable_prs:
+    #     print("\n".join(mergeable_prs))
+    # else:
+    #     print("No mergeable PRs found.")
 
-    # with open("pending_prs_urls.json", "w") as file:
-    #     json.dump(pending_prs, file, indent=2)
+    # print("Pending PRs (Not Ready for Merge) URLs:")
+    # if pending_prs:
+    #     print("\n".join(pending_prs))
+    # else:
+    #     print("No pending PRs found.")
 
-    print("Mergeable PRs URLs:")
-    if mergeable_prs:
-        print("\n".join(mergeable_prs))
+    # メッセージを整形
+    text = """
+    :heavy_check_mark: レビュー待ちのPR
+    https://github.com/kenta872/dev-ops-tools/pull/3
+    https://github.com/kenta872/dev-ops-tools/pull/2
+
+    :white_check_mark: レビューが完了しているPR
+    https://github.com/kenta872/dev-ops-tools/pull/3
+    https://github.com/kenta872/dev-ops-tools/pull/2
+    """
+
+    # ペイロードを作成
+    payload = {
+        "text": text
+    }
+
+    # Slackに送信
+    response = requests.post(slack_webhook_url, json=payload)
+
+    # 結果を確認
+    if response.status_code == 200:
+        print("メッセージが送信されました。")
     else:
-        print("No mergeable PRs found.")
-
-    print("Pending PRs (Not Ready for Merge) URLs:")
-    if pending_prs:
-        print("\n".join(pending_prs))
-    else:
-        print("No pending PRs found.")
+        print(f"送信に失敗しました。ステータスコード: {response.status_code}, 内容: {response.text}")
 
 if __name__ == "__main__":
     main()
+
+
+# オブジェクトで取り扱いたい
+# ドラフトはとりのぞく
+# json のリストの分だけ繰り返したい
+# mergeable が常にtrueになるので、マージ可能の判定にmergeable の利用はむずかしそう。/pulls/4/reviwersの人数が{指定人数}以上の場合にマージ可能と判断する
+
+# 1. PR一覧を取得
+# 2. ラベルが指定されたPRを取得
+# 3. レビュアーが指定された人数以上のPRを取得
+# 4. slack 通知ようの形に整形

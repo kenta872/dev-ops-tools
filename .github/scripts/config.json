@@ -1,5 +1,6 @@
 {
     "repo_name": "dev-ops-tools",
     "owner_name": "kenta872",
-    "target_label": "bug"
+    "target_label": "bug",
+    "webhook_url": "https://hooks.slack.com/services/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"
 }
