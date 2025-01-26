@@ -89,7 +89,7 @@ def send_notification(waiting_prs: List[str], complete_prs: List[str], webhook_u
 
 
 def main():
-    configs = load_config()
+    configs = load_configs()
     for config in configs:
         # 環境変数からWebhook URLを取得
         webhook_url = os.getenv(config["webhook_secret_name"])
