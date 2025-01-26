@@ -31,13 +31,17 @@ def fetch_prs(base_url, base_headers):
 
 def filter_prs(prs, label):
     print(f"Filtering PRs with label '{label}'...")
-    filtered_prs = [
-        pr for pr in prs
-        if any(l["name"] == label for l in pr.get("labels", [])) and not pr.get("draft", True)
-    ]
-    with open(FILTERED_PRS_FILE_NAME, "w") as file:
-        json.dump([pr["html_url"] for pr in filtered_prs], file, indent=2)
-    return filtered_prs
+    waiting_prs = []
+    complete_prs = []
+    for pr in prs:
+        # ラベルとドラフト状態のフィルタリング
+        if any(l["name"] == label for l in pr.get("labels", [])) and not pr.get("draft", True):
+            # requested_reviewersが2件未満の場合はwaiting_prsに、それ以外はcomplete_prsに仕分け
+            if len(pr.get("requested_reviewers", [])) < 2:
+                waiting_prs.append(pr)
+            else:
+                complete_prs.append(pr)
+    return waiting_prs, complete_prs
 
 def check_mergeable_state(pr_url):
     max_retries = 5
@@ -108,13 +112,7 @@ def main():
         base_url = f"https://api.github.com/repos/{owner_name}/{repo_name}/pulls"
         headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
         all_prs = fetch_prs(base_url, headers)
-        filtered_prs = filter_prs(all_prs, target_label)
-        print("############################")
-        print(filtered_prs)
-        print("############################")
-        
-        waiting_prs = ["https://github.com/kenta872/dev-ops-tools/pull/3","https://github.com/kenta872/dev-ops-tools/pull/2"]
-        complete_prs = ["https://github.com/kenta872/dev-ops-tools/pull/2"]
+        waiting_prs,complete_prs = filter_prs(all_prs, target_label)
 
         # 通知を送信
         send_notification(
