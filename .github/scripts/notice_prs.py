@@ -109,7 +109,9 @@ def main():
         headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
         all_prs = fetch_prs(base_url, headers)
         filtered_prs = filter_prs(all_prs, target_label)
+        print("############################")
         print(filtered_prs)
+        print("############################")
         
         waiting_prs = ["https://github.com/kenta872/dev-ops-tools/pull/3","https://github.com/kenta872/dev-ops-tools/pull/2"]
         complete_prs = ["https://github.com/kenta872/dev-ops-tools/pull/2"]
