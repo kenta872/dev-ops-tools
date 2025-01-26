@@ -25,7 +25,7 @@ def fetch_prs(base_url, base_headers):
 
     prs = response.json()
     with open(ALL_PRS_FILE_NAME, "w") as file:
-        json.dump(prs, file, indent=2)
+        json.dump(prs, file, indent=1)
     return prs
 
 def filter_prs(prs, label):
@@ -44,18 +44,17 @@ def filter_prs(prs, label):
 
 def send_notification(waiting_prs: List[str], complete_prs: List[str], webhook_url: str):
     # メッセージを整形
-    waitingForReviewTitle = ":両目: レビュー待ちのPR"
+    waitingForReviewTitle = ":eyes: レビュー待ちのPR"
     if waiting_prs:
         waitingPrsText = "\n".join(waiting_prs)
     else:
-        waitingPrsText = ":クラッカー: レビュー待ちのPRはありません! :クラッカー:"
+        waitingPrsText = ":tada: レビュー待ちのPRはありません ! :tada:"
 
     completeForReviewTitle = ":white_check_mark: レビューが完了しているPR"
     if complete_prs:
         completePrsText = "\n".join(waiting_prs)
     else:
-        completePrsText = "マージ待ちのPRはありませ!"
-
+        completePrsText = "マージ待ちのPRはありません !"
     text = f"{waitingForReviewTitle}\n{waitingPrsText}\n\n{completeForReviewTitle}\n{completePrsText}"
     # ペイロードを作成
     payload = {
@@ -111,3 +110,7 @@ if __name__ == "__main__":
 
 
 # オブジェクトで取り扱いたい
+# 事前準備
+# 1. slack app を作成(通知したいチャンネル分作成する)
+# 2. github で token を生成する
+# 3. github の setting からシークレットを登録(webhookURL, token)
