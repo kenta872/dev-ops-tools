@@ -105,15 +105,15 @@ def main():
     #     print("No pending PRs found.")
 
     # メッセージを整形
-    text = """
-    :heavy_check_mark: レビュー待ちのPR
-    https://github.com/kenta872/dev-ops-tools/pull/3
-    https://github.com/kenta872/dev-ops-tools/pull/2
+    # text = """
+    # :heavy_check_mark: レビュー待ちのPR
+    # https://github.com/kenta872/dev-ops-tools/pull/3
+    # https://github.com/kenta872/dev-ops-tools/pull/2
 
-    :white_check_mark: レビューが完了しているPR
-    https://github.com/kenta872/dev-ops-tools/pull/3
-    https://github.com/kenta872/dev-ops-tools/pull/2
-    """
+    # :white_check_mark: レビューが完了しているPR
+    # https://github.com/kenta872/dev-ops-tools/pull/3
+    # https://github.com/kenta872/dev-ops-tools/pull/2
+    # """
 
     # ペイロードを作成
     payload = {
@@ -121,7 +121,7 @@ def main():
     }
 
     # Slackに送信
-    response = requests.post(WEBHOOK_URL, json=payload, headers={'Content-Type': 'application/json'})
+    response = requests.post("https://hooks.slack.com/services/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", json=payload, headers={'Content-type': 'application/json'})
 
     # 結果を確認
     if response.status_code == 200:
