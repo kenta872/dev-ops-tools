@@ -1,5 +1,14 @@
-{
-    "repo_name": "dev-ops-tools",
-    "owner_name": "kenta872",
-    "target_label": "bug"
-}
+[
+    {
+        "repo_name": "dev-ops-tools",
+        "owner_name": "kenta872",
+        "target_label": "bug",
+        "webhook_secret_name": "WEBHOOK_TEST"
+    },
+    {
+        "repo_name": "dev-ops-tools",
+        "owner_name": "kenta872",
+        "target_label": "duplicate",
+        "webhook_secret_name": "WEBHOOK_URL_ALL"
+    }
+]

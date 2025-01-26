@@ -7,18 +7,13 @@ import json
 # 設定ファイルのパス
 CONFIG_FILE_PATH = ".github/scripts/config.json"
 
-def load_config():
+def load_configs():
     with open(CONFIG_FILE_PATH, "r") as file:
         return json.load(file)
 
 # 設定を読み込む
-config = load_config()
-REPO_NAME = config["repo_name"]
-OWNER_NAME = config["owner_name"]
-TARGET_LABEL = config["target_label"]
 
 # 環境変数から値を取得
-WEBHOOK_TEST = os.getenv("WEBHOOK_TEST")
 DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
 
 # GitHub APIのベースURL
@@ -72,7 +67,57 @@ def check_mergeable_state(pr_url):
             return "pending"
     return "pending"
 
+def send_notification(waiting_prs: List[str], complete_prs: List[str], webhook_url: str):
+    # メッセージを整形
+    waitingForReviewTitle = ":heavy_check_mark: レビュー待ちのPR"
+    completeForReviewTitle = ":white_check_mark: レビューが完了しているPR"
+    text = f"{waitingForReviewTitle}\n" + "\n".join(waiting_prs) + f"\n{completeForReviewTitle}\n" + "\n".join(complete_prs)
+
+    # ペイロードを作成
+    payload = {
+        "text": text
+    }
+
+    # Slackに送信
+    response = requests.post(webhook_url, json=payload, headers={'Content-type': 'application/json'})
+
+    # 結果を確認
+    if response.status_code == 200:
+        print("メッセージが送信されました。")
+    else:
+        print(f"送信に失敗しました。ステータスコード: {response.status_code}, 内容: {response.text}")
+
+
 def main():
+    configs = load_config()
+    for config in configs:
+        # 環境変数からWebhook URLを取得
+        webhook_url = os.getenv(config["webhook_secret_name"])
+        repo_name = config["repo_name"]
+        owner_name = config["owner_name"]
+        target_label = config["target_label"]
+        if webhook_url is None:
+            print(f"webhook_url URL not found. Skipping...")
+            continue
+        if repo_name is None:
+            print(f"repo_name URL not found. Skipping...")
+            continue
+        if owner_name is None:
+            print(f"owner_name URL not found. Skipping...")
+            continue
+        if target_label is None:
+            print(f"target_label URL not found. Skipping...")
+            continue
+        
+        waiting_prs = ["https://github.com/kenta872/dev-ops-tools/pull/3","https://github.com/kenta872/dev-ops-tools/pull/2"]
+        complete_prs = ["https://github.com/kenta872/dev-ops-tools/pull/2"]
+
+        # 通知を送信
+        send_notification(
+            waiting_prs=waiting_prs,
+            complete_prs=complete_prs,
+            webhook_url=webhook_url
+        )
     # prs = fetch_prs()
     # filtered_prs = filter_prs_by_label(prs, TARGET_LABEL)
 
@@ -103,29 +148,6 @@ def main():
     #     print("\n".join(pending_prs))
     # else:
     #     print("No pending PRs found.")
-
-    # メッセージを整形
-    textA = ":heavy_check_mark: レビュー待ちのPR"
-    textB = ":white_check_mark: レビューが完了しているPR"
-    textC = "https://github.com/kenta872/dev-ops-tools/pull/3"
-    textD = "https://github.com/kenta872/dev-ops-tools/pull/2"
-    textE = "https://github.com/kenta872/dev-ops-tools/pull/3"
-    textF = "https://github.com/kenta872/dev-ops-tools/pull/2"
-    text = f"{textA}\n{textC}\n{textD}\n{textB}\n{textE}\n{textF}"
-
-    # ペイロードを作成
-    payload = {
-        "text": text
-    }
-
-    # Slackに送信
-    response = requests.post(WEBHOOK_TEST, json=payload, headers={'Content-type': 'application/json'})
-
-    # 結果を確認
-    if response.status_code == 200:
-        print("メッセージが送信されました。")
-    else:
-        print(f"送信に失敗しました。ステータスコード: {response.status_code}, 内容: {response.text}")
 
 if __name__ == "__main__":
     main()
