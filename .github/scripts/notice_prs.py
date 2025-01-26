@@ -18,7 +18,7 @@ OWNER_NAME = config["owner_name"]
 TARGET_LABEL = config["target_label"]
 
 # 環境変数から値を取得
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+WEBHOOK_TEST = os.getenv("WEBHOOK_TEST")
 DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
 
 # GitHub APIのベースURL
