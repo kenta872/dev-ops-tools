@@ -33,48 +33,88 @@ def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Dict[str, Any]]:
         raise ValueError(f"Invalid JSON format in {file_path}: {e}")
 
 
-def fetch_prs(api_url: str, headers: Dict[str, str], save_to_file: Optional[str] = None) -> List[Dict[str, Any]]:
+def fetch_pr_infos(owner_name: str, repo_name: str) -> List[Dict[str, Any]]:
+    api_url = f"https://api.github.com/repos/{owner_name}/{repo_name}/pulls"
+    headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
+    save_to_file = "all_prs.json"
     logging.info("Fetching Pull Requests from %s", api_url)
 
     try:
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
-        prs = response.json()
+        pr_infos = response.json()
 
-        if save_to_file:
-            with open(save_to_file, "w", encoding="utf-8") as file:
-                json.dump(prs, file, indent=2)
-            logging.info("PRデータを %s に保存しました", save_to_file)
+        with open(save_to_file, "w", encoding="utf-8") as file:
+            json.dump(pr_infos, file, indent=2)
+        logging.info("PRデータを %s に保存しました", save_to_file)
 
-        return prs
+        return pr_infos
     except requests.exceptions.RequestException as e:
         logging.error("PRの取得に失敗しました: %s", e)
         return []
 
 
-def filter_and_categorize_prs(prs: List[Dict[str, Any]], label: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def fetch_pr_url_datas(pr_infos: List[Dict[str, Any]], label: str) -> List[Dict[str, Any]]:
     logging.info("Filtering PRs with label '%s'...", label)
 
+    pr_url_datas = []
+
+    for pr_info in pr_infos:
+        labels = [l["name"] for l in pr_info.get("labels", [])]
+        is_draft = pr_info.get("draft", False)
+
+        if label in labels and not is_draft:
+            pr_url_data = {
+                "html_url": pr["html_url"],
+                "url": pr["url"],
+            }
+            pr_url_datas.append(pr_url_data)
+
+    logging.info("Fetch completed.")
+    return pr_url_list
+
+
+def filter_and_categorize_prs(pr_url_datas: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    logging.info("Filtering PRs with label '%s'...", label)
+    headers={"Content-Type": "application/json"}
     waiting_prs = []
     complete_prs = []
 
-    for pr in prs:
-        labels = [l["name"] for l in pr.get("labels", [])]
-        is_draft = pr.get("draft", True)
-        reviewers = pr.get("requested_reviewers", [])
+    for pr_url_data in pr_url_datas:
+        approved_reviews_count = fetch_pr_reviews(pr_url_data["url"], headers)
 
-        if label in labels and not is_draft:
-            pr_data = {
-                "html_url": pr["html_url"],
-                "requested_reviewers_count": len(reviewers),
-            }
-            if len(reviewers) < REVIEWER_COUNT_LIMIT:
-                waiting_prs.append(pr_data)
-            else:
-                complete_prs.append(pr_data)
+        pr_url = pr_url_data["html_url"]
+        if len(reviewers) < REVIEWER_COUNT_LIMIT:
+            waiting_prs.append(pr_url)
+        else:
+            complete_prs.append(pr_url)
+  
 
     logging.info("Filtering completed. Waiting: %d, Complete: %d", len(waiting_prs), len(complete_prs))
     return waiting_prs, complete_prs
+
+
+def fetch_pr_reviews(base_url: str, headers: Dict[str, str]) -> List[Dict[str, Any]]:
+    api_url = f"{base_url}/reviews"
+    logging.info("Fetching Pull Request reviews from %s", api_url)
+    save_to_file = "pr_reviews.json"
+
+    try:
+        response = requests.get(api_url, headers=headers)
+        response.raise_for_status()  # ステータスコードが200以外の場合、例外が発生
+
+        pr_reviews = response.json()
+
+        # 承認されたレビューの人数をカウント
+        approved_reviews_count = len([review for review in pr_reviews if review["state"] == "APPROVED"])
+
+        logging.info("取得したレビュー数: %d, 承認されたレビュー数: %d", len(pr_reviews), approved_reviews_count)
+
+        return approved_reviews_count
+
+    except requests.exceptions.RequestException as e:
+        logging.error("PRレビューの取得に失敗しました: %s", e)
+        return 0
 
 
 def format_notification_message(prs: List[Dict[str, Any]]) -> str:
@@ -131,12 +171,12 @@ def main():
         base_url = f"https://api.github.com/repos/{owner_name}/{repo_name}/pulls"
         headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
 
-        all_prs = fetch_prs(base_url, headers, save_to_file="all_prs.json")
-        if not all_prs:
+        all_pr_infos = fetch_pr_infos(owner_name, repo_name)
+        if not all_pr_infos:
             logging.warning("PRが取得できませんでした。スキップします...")
             continue
 
-        waiting_prs, complete_prs = filter_and_categorize_prs(all_prs, target_label)
+        pr_url_datas = fetch_pr_url_datas(all_pr_infos, target_label)
 
         send_notification(waiting_prs, complete_prs, target_label, webhook_url)
 
