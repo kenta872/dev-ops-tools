@@ -81,15 +81,15 @@ def format_notification_message(prs: List[Dict[str, Any]]) -> str:
     if not prs:
         return ":tada: 該当するPRはありません！ :tada:"
     
-    return "\n".join(f"- :white_check_mark: <{pr['html_url']}>  (レビュー完了: {pr['requested_reviewers_count']}人)" for pr in prs)
+    return "\n".join(f"- <{pr['html_url']}>  (レビュー完了: {pr['requested_reviewers_count']}人)" for pr in prs)
 
 
 def send_notification(waiting_prs: List[Dict[str, Any]], complete_prs: List[Dict[str, Any]], label: str, webhook_url: str):
     message = (
-        f":page_facing_up: [ {label} ] - プルリクエストレビュー状況\n\n"
+        f":page_facing_up: [ {label} ] - プルリクエストレビュー状況\n\n\n"
         "------------------------\n"
-        f"*レビュー待ちのPR*\n{format_notification_message(waiting_prs)}\n\n"
-        f"*レビューが完了しているPR*\n{format_notification_message(complete_prs)}"
+        f"*レビュー待ちのPR*\n{format_notification_message(waiting_prs)} ( {waiting_prs.len} 件 )\n\n\n"
+        f"*レビューが完了しているPR*\n{format_notification_message(complete_prs)}( {complete_prs.len} 件 )"
     )
 
     payload = {"text": message}
