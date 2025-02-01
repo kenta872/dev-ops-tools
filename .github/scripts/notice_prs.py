@@ -76,11 +76,17 @@ def fetch_approved_reviewers_count(pr_url: str) -> int:
     api_url = f"{pr_url}/reviews"
     logging.info("Fetching reviews for PR: %s", pr_url)
 
-    try:
+   try:
         response = requests.get(api_url, headers={"Authorization": f"token {DEV_OPS_TOKEN}"})
         response.raise_for_status()
         reviews = response.json()
-        approved_reviews = [review for review in reviews if review["state"] == "APPROVED"]
+
+        # ユーザーIDで重複を排除
+        approved_reviews = {
+            review["user"]["id"]: review for review in reviews if review["state"] == "APPROVED"
+        }
+
+        # 重複を排除した承認者の数を返す
         return len(approved_reviews)
     except requests.exceptions.RequestException as e:
         logging.error("Failed to fetch reviews for PR %s: %s", pr_url, e)
@@ -91,7 +97,7 @@ def format_pr_list(prs: List[Dict[str, Any]]) -> str:
     if not prs:
         return "なし"
 
-    return "\n".join(f"- <{pr['pull_request_url']}> レビュー完了: {pr['approved_reviewers_count']}人" for pr in prs)
+    return "\n".join(f"- <{pr['pull_request_url']}> (レビュー完了: {pr['approved_reviewers_count']}人)" for pr in prs)
 
 
 def send_slack_notification(waiting_prs: List[Dict[str, Any]], complete_prs: List[Dict[str, Any]], label: str, webhook_url: str):
