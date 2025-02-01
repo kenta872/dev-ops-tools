@@ -103,7 +103,7 @@ def format_pr_list(prs: List[Dict[str, Any]]) -> str:
 def send_slack_notification(waiting_prs: List[Dict[str, Any]], complete_prs: List[Dict[str, Any]], label: str, webhook_url: str):
     message = (
         f":page_facing_up: [{label}] - プルリクエストレビュー状況\n\n\n"
-        "------------------------"
+        "------------------------\n"
         f"*レビュー待ちのPR ( {len(waiting_prs)} 件 )*\n{format_pr_list(waiting_prs)}\n\n\n"
         f"*レビュー完了したPR ( {len(complete_prs)} 件 )*\n{format_pr_list(complete_prs)}"
     )
