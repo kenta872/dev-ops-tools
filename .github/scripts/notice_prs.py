@@ -71,7 +71,7 @@ def fetch_pr_url_datas(pr_infos: List[Dict[str, Any]], label: str) -> List[Dict[
             pr_url_datas.append(pr_url_data)
 
     logging.info("Fetch completed.")
-    return pr_url_list
+    return pr_url_datas
 
 
 def filter_and_categorize_prs(pr_url_datas: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
