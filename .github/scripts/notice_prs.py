@@ -21,7 +21,6 @@ DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
 REVIEWER_COUNT_LIMIT = 1
 
 
-"""設定ファイルを読み込む"""
 def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Dict[str, Any]]:
     path = Path(file_path)
     if not path.exists():
@@ -34,7 +33,6 @@ def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Dict[str, Any]]:
         raise ValueError(f"Invalid JSON format in {file_path}: {e}")
 
 
-"""GitHub APIからプルリクエストの一覧を取得"""
 def fetch_prs(api_url: str, headers: Dict[str, str], save_to_file: Optional[str] = None) -> List[Dict[str, Any]]:
     logging.info("Fetching Pull Requests from %s", api_url)
 
@@ -54,7 +52,6 @@ def fetch_prs(api_url: str, headers: Dict[str, str], save_to_file: Optional[str]
         return []
 
 
-"""指定したラベルのPRをフィルタリングし、レビュー待ちと完了を分類"""
 def filter_and_categorize_prs(prs: List[Dict[str, Any]], label: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     logging.info("Filtering PRs with label '%s'...", label)
 
@@ -80,19 +77,19 @@ def filter_and_categorize_prs(prs: List[Dict[str, Any]], label: str) -> Tuple[Li
     return waiting_prs, complete_prs
 
 
-"""PRリストをメッセージ用にフォーマット"""
 def format_notification_message(prs: List[Dict[str, Any]]) -> str:
     if not prs:
         return ":tada: 該当するPRはありません！ :tada:"
     
-    return "\n".join(f"- <{pr['html_url']}> (レビュー待ち {pr['requested_reviewers_count']}人)" for pr in prs)
+    return "\n".join(f"- :white_check_mark: <{pr['html_url']}>  (レビュー完了: {pr['requested_reviewers_count']}人)" for pr in prs)
 
 
-"""SlackにPRの状態を通知"""
-def send_notification(waiting_prs: List[Dict[str, Any]], complete_prs: List[Dict[str, Any]], webhook_url: str):
+def send_notification(waiting_prs: List[Dict[str, Any]], complete_prs: List[Dict[str, Any]], label: str, webhook_url: str):
     message = (
-        f":eyes: *レビュー待ちのPR*\n{format_notification_message(waiting_prs)}\n\n"
-        f":white_check_mark: *レビューが完了しているPR*\n{format_notification_message(complete_prs)}"
+        f":page_facing_up: [ {label} ] - プルリクエストレビュー状況\n\n"
+        "------------------------\n"
+        f"*レビュー待ちのPR*\n{format_notification_message(waiting_prs)}\n\n"
+        f"*レビューが完了しているPR*\n{format_notification_message(complete_prs)}"
     )
 
     payload = {"text": message}
@@ -106,7 +103,6 @@ def send_notification(waiting_prs: List[Dict[str, Any]], complete_prs: List[Dict
 
 
 def main():
-    """メイン処理"""
     try:
         configs = load_configs()
     except Exception as e:
