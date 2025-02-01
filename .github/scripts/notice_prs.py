@@ -88,8 +88,8 @@ def send_notification(waiting_prs: List[Dict[str, Any]], complete_prs: List[Dict
     message = (
         f":page_facing_up: [ {label} ] - プルリクエストレビュー状況\n\n\n"
         "------------------------\n"
-        f"*レビュー待ちのPR*\n{format_notification_message(waiting_prs)} ( {waiting_prs.len} 件 )\n\n\n"
-        f"*レビューが完了しているPR*\n{format_notification_message(complete_prs)}( {complete_prs.len} 件 )"
+        f"*レビュー待ちのPR*\n{format_notification_message(waiting_prs)} ( {len(waiting_prs)} 件 )\n\n\n"
+        f"*レビューが完了しているPR*\n{format_notification_message(complete_prs)}( {len(complete_prs)} 件 )"
     )
 
     payload = {"text": message}
