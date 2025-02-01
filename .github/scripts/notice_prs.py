@@ -76,7 +76,7 @@ def fetch_approved_reviewers_count(pr_url: str) -> int:
     api_url = f"{pr_url}/reviews"
     logging.info("Fetching reviews for PR: %s", pr_url)
 
-   try:
+    try:
         response = requests.get(api_url, headers={"Authorization": f"token {DEV_OPS_TOKEN}"})
         response.raise_for_status()
         reviews = response.json()
