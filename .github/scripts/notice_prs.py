@@ -55,7 +55,7 @@ def fetch_pr_infos(owner_name: str, repo_name: str) -> List[Dict[str, Any]]:
 
 
 def fetch_pr_url_datas(pr_infos: List[Dict[str, Any]], label: str) -> List[Dict[str, Any]]:
-    logging.info("Filtering PRs with label '%s'...", label)
+    logging.info("Filtering PRs with label '%s'.", label)
 
     pr_url_datas = []
 
@@ -65,8 +65,8 @@ def fetch_pr_url_datas(pr_infos: List[Dict[str, Any]], label: str) -> List[Dict[
 
         if label in labels and not is_draft:
             pr_url_data = {
-                "html_url": pr["html_url"],
-                "url": pr["url"],
+                "html_url": pr_info["html_url"],
+                "url": pr_info["url"],
             }
             pr_url_datas.append(pr_url_data)
 
