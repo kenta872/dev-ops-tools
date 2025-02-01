@@ -138,7 +138,7 @@ def main():
 
         waiting_prs, complete_prs = filter_and_categorize_prs(all_prs, target_label)
 
-        send_notification(waiting_prs, complete_prs, webhook_url)
+        send_notification(waiting_prs, complete_prs, target_label, webhook_url)
 
 
 if __name__ == "__main__":
