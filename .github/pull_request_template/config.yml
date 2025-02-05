@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Team A PR Template
+    url: ../../pull/new/main?template=team_a_template.md
+    about: チームA用のプルリクエストテンプレート
+  - name: Team B PR Template
+    url: ../../pull/new/main?template=team_b_template.md
+    about: チームB用のプルリクエストテンプレート
