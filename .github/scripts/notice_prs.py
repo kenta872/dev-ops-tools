@@ -36,7 +36,6 @@ class Config:
         self.target_label = target_label
         self.webhook_secret_name = webhook_secret_name
 
-# PullRequestクラス
 class PullRequest:
     def __init__(self,
                  url: str,
@@ -58,20 +57,21 @@ class PullRequest:
         self.label_names = label_names
 
 def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Config]:
+    logging.info("Loading config file: %s", file_path)
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {file_path}")
     try:
         with path.open("r", encoding="utf-8") as file:
-            config_json = json.load(file)
-            sampleData = [
-                Config(owner_name=entry["owner_name"], 
-                       repo_name=entry["repo_name"],
-                       target_label=entry["target_label"],
-                       webhook_secret_name=os.getenv(entry["webhook_secret_name"]))
-                for entry in config_json
+            config_json_list = json.load(file)
+            config_list = [
+                Config(owner_name=config_json.get('owner_name', ''),
+                       repo_name=config_json.get('repo_name', ''),
+                       target_label=config_json.get('target_label', ''),
+                       webhook_secret_name=os.getenv(config_json.get('webhook_secret_name', '')))
+                for config_json in config_json_list
             ]
-            return sampleData
+            return config_list
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON format in {file_path}: {e}")
     except TypeError as e:
@@ -86,26 +86,20 @@ def fetch_pull_requests(owner_name: str, repo_name: str) -> List[PullRequest]:
     try:
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
-        
-        # JSONレスポンスをパース
-        pr_data = response.json()
-
-        # PullRequestオブジェクトに変換
         pull_requests = [
             PullRequest(
-                url=pr['url'],
-                html_url=pr['html_url'],
-                draft=pr['draft'],
-                label_names=[label['name'] for label in pr.get('labels', [])]
+                url=pr_data.get("url", ""),
+                html_url=pr_data.get("html_url", ""),
+                draft=pr_data.get("draft", False),
+                label_names=[label.get("name", "") for label in pr_data.get("labels", [])]
             )
-            for pr in pr_data
+            for pr_data in response.json()
         ]
-
         return pull_requests
 
-    except requests.exceptions.RequestException as e:
-        logging.error("Failed to fetch pull requests: %s", e)
-        return []
+    except requests.RequestException as e:
+        logging.error("Failed to fetch pull requests: %s", e, exc_info=True)
+        raise
 
 
 def filter_prs_by_label(prs: List[PullRequest], label: str) -> List[Dict[str, Any]]:
@@ -189,14 +183,11 @@ def main():
     try:
         configs = load_configs()
         for config in configs:
-            logging.info("ownerName: %s", config.owner_name)
-            logging.info("repoName: %s", config.repo_name)
-            logging.info("targetLabel: %s", config.target_label)
-            logging.info("webhookSecretName: %s", config.webhook_secret_name)
-            # pull_request_list = fetch_pull_requests(config.owner_name, config.repo_name)
-            # if not pull_request_list:
-            #     logging.warning("No PRs found. Skipping...")
-            #     continue
+            pull_request_list = fetch_pull_requests(config.owner_name, config.repo_name)
+            if not pull_request_list:
+                logging.warning("No PRs found. Skipping...")
+                continue
+            logging.info("Fetched %d PRs", len(pull_request_list))
 
             # pr_url_datas = filter_prs_by_label(pull_request_list, config.target_label)
             # categorized_prs = categorize_prs_by_review_status(pr_url_datas)
@@ -204,7 +195,7 @@ def main():
             # send_slack_notification(categorized_prs["waiting"], categorized_prs["complete"], target_label, webhook_url)
 
     except Exception as e:
-        logging.error("Failed to load config file: %s", e)
+        logging.error("An error occurred: %s", e, exc_info=True)
         return
 
 if __name__ == "__main__":
