@@ -61,12 +61,6 @@ def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Config]:
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {file_path}")
-
-    try:
-        with path.open("r", encoding="utf-8") as file:
-            return json.load(file)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON format in {file_path}: {e}")
     try:
         with path.open("r", encoding="utf-8") as file:
             config_json = json.load(file)
