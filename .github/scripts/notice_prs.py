@@ -15,7 +15,49 @@ DEV_OPS_TOKEN = os.getenv("DEV_OPS_TOKEN")
 REVIEWER_COUNT_LIMIT = 1
 
 
-def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Dict[str, Any]]:
+
+class Config:
+    def __init__(self,
+                 owner_name: str,
+                 repo_name: str,
+                 target_label: str,
+                 webhook_secret_name: str):
+        # 空文字やNoneを防ぐバリデーション
+        if not owner_name:
+            raise ValueError("owner_name cannot be empty")
+        if not repo_name:
+            raise ValueError("repo_name cannot be empty")
+        if not target_label:
+            raise ValueError("target_label cannot be empty")
+        if not webhook_secret_name:
+            raise ValueError("webhook_secret_name cannot be empty")
+        self.owner_name = owner_name
+        self.repo_name = repo_name
+        self.target_label = target_label
+        self.webhook_secret_name = webhook_secret_name
+
+# PullRequestクラス
+class PullRequest:
+    def __init__(self,
+                 url: str,
+                 html_url: str,
+                 draft: bool,
+                 label_names: list):
+        # 空文字やNoneを防ぐバリデーション
+        if not url:
+            raise ValueError("url cannot be empty")
+        if not html_url:
+            raise ValueError("html_url cannot be empty")
+        if draft is None:
+            raise ValueError("draft cannot be None")
+        if not label_names:
+            raise ValueError("label_names cannot be empty")
+        self.url = url
+        self.html_url = html_url
+        self.draft = draft
+        self.label_names = label_names
+
+def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Config]:
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {file_path}")
@@ -25,9 +67,24 @@ def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Dict[str, Any]]:
             return json.load(file)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON format in {file_path}: {e}")
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            config_json = json.load(file)
+            sampleData = [
+                Config(owner_name=entry["owner_name"], 
+                       repo_name=entry["repo_name"],
+                       target_label=entry["target_label"],
+                       webhook_secret_name=os.getenv(entry["webhook_secret_name"]))
+                for entry in config_json
+            ]
+            return sampleData
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON format in {file_path}: {e}")
+    except TypeError as e:
+        raise ValueError(f"Incorrect data format in {file_path}: {e}")
 
 
-def fetch_pull_requests(owner_name: str, repo_name: str) -> List[Dict[str, Any]]:
+def fetch_pull_requests(owner_name: str, repo_name: str) -> List[PullRequest]:
     api_url = f"https://api.github.com/repos/{owner_name}/{repo_name}/pulls"
     headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
     logging.info("Fetching Pull Requests from %s", api_url)
@@ -35,18 +92,34 @@ def fetch_pull_requests(owner_name: str, repo_name: str) -> List[Dict[str, Any]]
     try:
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
-        return response.json()
+        
+        # JSONレスポンスをパース
+        pr_data = response.json()
+
+        # PullRequestオブジェクトに変換
+        pull_requests = [
+            PullRequest(
+                url=pr['url'],
+                html_url=pr['html_url'],
+                draft=pr['draft'],
+                label_names=[label['name'] for label in pr.get('labels', [])]
+            )
+            for pr in pr_data
+        ]
+
+        return pull_requests
+
     except requests.exceptions.RequestException as e:
         logging.error("Failed to fetch pull requests: %s", e)
         return []
 
 
-def filter_prs_by_label(prs: List[Dict[str, Any]], label: str) -> List[Dict[str, Any]]:
+def filter_prs_by_label(prs: List[PullRequest], label: str) -> List[Dict[str, Any]]:
     logging.info("Filtering PRs with label '%s'", label)
     filtered_prs = [
-        {"html_url": pr["html_url"], "url": pr["url"]}
+        {"html_url": pr.html_url, "url": pr.url}
         for pr in prs
-        if label in [l["name"] for l in pr.get("labels", [])] and not pr.get("draft", False)
+        if label in [l for l in pr.label_names] and not pr.draft
     ]
     logging.info("Filtered %d PRs", len(filtered_prs))
     return filtered_prs
@@ -121,30 +194,24 @@ def send_slack_notification(waiting_prs: List[Dict[str, Any]], complete_prs: Lis
 def main():
     try:
         configs = load_configs()
+        for config in configs:
+            logging.info("ownerName: %s", config.owner_name)
+            logging.info("repoName: %s", config.repo_name)
+            logging.info("targetLabel: %s", config.target_label)
+            logging.info("webhookSecretName: %s", config.webhook_secret_name)
+            # pull_request_list = fetch_pull_requests(config.owner_name, config.repo_name)
+            # if not pull_request_list:
+            #     logging.warning("No PRs found. Skipping...")
+            #     continue
+
+            # pr_url_datas = filter_prs_by_label(pull_request_list, config.target_label)
+            # categorized_prs = categorize_prs_by_review_status(pr_url_datas)
+
+            # send_slack_notification(categorized_prs["waiting"], categorized_prs["complete"], target_label, webhook_url)
+
     except Exception as e:
         logging.error("Failed to load config file: %s", e)
         return
-
-    for config in configs:
-        webhook_url = os.getenv(config.get("webhook_secret_name", ""))
-        repo_name = config.get("repo_name")
-        owner_name = config.get("owner_name")
-        target_label = config.get("target_label")
-
-        if not all([webhook_url, repo_name, owner_name, target_label]):
-            logging.warning("Missing configuration for webhook_url, repo_name, owner_name, or target_label. Skipping...")
-            continue
-
-        all_pr_infos = fetch_pull_requests(owner_name, repo_name)
-        if not all_pr_infos:
-            logging.warning("No PRs found. Skipping...")
-            continue
-
-        pr_url_datas = filter_prs_by_label(all_pr_infos, target_label)
-        categorized_prs = categorize_prs_by_review_status(pr_url_datas)
-
-        send_slack_notification(categorized_prs["waiting"], categorized_prs["complete"], target_label, webhook_url)
-
 
 if __name__ == "__main__":
     main()
