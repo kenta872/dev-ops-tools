@@ -21,7 +21,7 @@ class Config:
                  owner_name: str,
                  repo_name: str,
                  target_label: str,
-                 webhook_secret_name: str):
+                 webhook_url: str):
         # 空文字やNoneを防ぐバリデーション
         if not owner_name:
             raise ValueError("owner_name cannot be empty")
@@ -29,12 +29,12 @@ class Config:
             raise ValueError("repo_name cannot be empty")
         if not target_label:
             raise ValueError("target_label cannot be empty")
-        if not webhook_secret_name:
-            raise ValueError("webhook_secret_name cannot be empty")
+        if not webhook_url:
+            raise ValueError("webhook_url cannot be empty")
         self.owner_name = owner_name
         self.repo_name = repo_name
         self.target_label = target_label
-        self.webhook_secret_name = webhook_secret_name
+        self.webhook_url = webhook_url
 
 class PullRequest:
     def __init__(self,
@@ -80,7 +80,7 @@ def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Config]:
                 Config(owner_name=config_json.get('owner_name', ''),
                        repo_name=config_json.get('repo_name', ''),
                        target_label=config_json.get('target_label', ''),
-                       webhook_secret_name=os.getenv(config_json.get('webhook_secret_name', '')))
+                       webhook_url=os.getenv(config_json.get('webhook_secret_name', '')))
                 for config_json in config_json_list
             ]
             return config_list
@@ -174,7 +174,7 @@ def format_pr_list(review_results: List[ReviewResult]) -> str:
     return "\n".join(f"- <{review_result.pull_request_url}> ( レビュー完了: {review_result.approve_count}人 )" for review_result in review_results)
 
 
-def send_slack_notification(waiting_prs: List[Dict[str, Any]], complete_prs: List[Dict[str, Any]], label: str, webhook_url: str):
+def send_slack_notification(waiting_prs: List[ReviewResult], complete_prs: List[ReviewResult], label: str, webhook_url: str):
     message = (
         f":page_facing_up: [{label}] - プルリクエストレビュー状況\n\n\n"
         "------------------------\n"
@@ -203,9 +203,13 @@ def main():
 
             pr_url_datas = filter_pull_request(pull_request_list, config.target_label)
             categorized_prs = categorize_prs_by_review_status(pr_url_datas)
-            logging.info("Fetched %d PRs", len(categorized_prs["waiting"]) + len(categorized_prs["complete"]))
 
-            # send_slack_notification(categorized_prs["waiting"], categorized_prs["complete"], target_label, webhook_url)
+            send_slack_notification(
+                categorized_prs["waiting"],
+                categorized_prs["complete"],
+                config.target_label,
+                config.webhook_url
+            )
 
     except Exception as e:
         logging.error("An error occurred: %s", e, exc_info=True)
