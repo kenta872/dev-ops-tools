@@ -102,15 +102,13 @@ def fetch_pull_requests(owner_name: str, repo_name: str) -> List[PullRequest]:
         raise
 
 
-def filter_prs_by_label(prs: List[PullRequest], label: str) -> List[Dict[str, Any]]:
-    logging.info("Filtering PRs with label '%s'", label)
-    filtered_prs = [
-        {"html_url": pr.html_url, "url": pr.url}
-        for pr in prs
-        if label in [l for l in pr.label_names] and not pr.draft
+def filter_pull_request(pull_request_list: List[PullRequest], label: str) -> List[PullRequest]:
+    filtered_pulll_request_list = [
+        {"html_url": pull_request.html_url, "url": pull_request.url}
+        for pull_request in pull_request_list
+        if label in [label_name for label_name in pull_request.label_names] and not pull_request.draft
     ]
-    logging.info("Filtered %d PRs", len(filtered_prs))
-    return filtered_prs
+    return filtered_pulll_request_list
 
 
 def categorize_prs_by_review_status(pr_url_datas: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
@@ -187,9 +185,9 @@ def main():
             if not pull_request_list:
                 logging.warning("No PRs found. Skipping...")
                 continue
-            logging.info("Fetched %d PRs", len(pull_request_list))
 
-            # pr_url_datas = filter_prs_by_label(pull_request_list, config.target_label)
+            pr_url_datas = filter_pull_request(pull_request_list, config.target_label)
+            logging.info("Fetched %d PRs", len(pr_url_datas))
             # categorized_prs = categorize_prs_by_review_status(pr_url_datas)
 
             # send_slack_notification(categorized_prs["waiting"], categorized_prs["complete"], target_label, webhook_url)
