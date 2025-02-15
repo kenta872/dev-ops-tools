@@ -56,6 +56,18 @@ class PullRequest:
         self.draft = draft
         self.label_names = label_names
 
+class ReviewResult:
+    def __init__(self,
+                 pull_request_url: str,
+                 approve_count: int):
+        # 空文字やNoneを防ぐバリデーション
+        if not pull_request_url:
+            raise ValueError("url cannot be empty")
+        if approve_count < 0:
+            raise ValueError("approve_count cannot be less than 0")
+        self.pull_request_url = pull_request_url
+        self.approve_count = approve_count
+
 def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Config]:
     logging.info("Loading config file: %s", file_path)
     path = Path(file_path)
@@ -111,29 +123,32 @@ def filter_pull_request(pull_request_list: List[PullRequest], label: str) -> Lis
     return filtered_pulll_request_list
 
 
-def categorize_prs_by_review_status(pr_url_datas: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+def categorize_prs_by_review_status(pull_request_list: List[PullRequest]) -> Dict[str, List[ReviewResult]]:
     waiting_prs, complete_prs = [], []
 
-    for pr_url_data in pr_url_datas:
-        approved_reviewers_count = fetch_approved_reviewers_count(pr_url_data["url"])
-        pr_url = pr_url_data["html_url"]
+    for pull_request in pull_request_list:
+        approved_reviewers_count = fetch_approved_reviewers_count(pull_request.url)
 
         if approved_reviewers_count < REVIEWER_COUNT_LIMIT:
             waiting_prs.append(
-                {"pull_request_url": pr_url, "approved_reviewers_count": approved_reviewers_count}
+                ReviewResult(
+                    pull_request_url=pull_request.html_url,
+                    approve_count=approved_reviewers_count
+                )
             )
         else:
             complete_prs.append(
-                {"pull_request_url": pr_url, "approved_reviewers_count": approved_reviewers_count}
+                ReviewResult(
+                    pull_request_url=pull_request.html_url,
+                    approve_count=approved_reviewers_count
+                )
             )
 
-    logging.info("Categorized PRs: Waiting=%d, Complete=%d", len(waiting_prs), len(complete_prs))
     return {"waiting": waiting_prs, "complete": complete_prs}
 
 
 def fetch_approved_reviewers_count(pr_url: str) -> int:
     api_url = f"{pr_url}/reviews"
-    logging.info("Fetching reviews for PR: %s", pr_url)
 
     try:
         response = requests.get(api_url, headers={"Authorization": f"token {DEV_OPS_TOKEN}"})
@@ -187,8 +202,8 @@ def main():
                 continue
 
             pr_url_datas = filter_pull_request(pull_request_list, config.target_label)
-            logging.info("Fetched %d PRs", len(pr_url_datas))
-            # categorized_prs = categorize_prs_by_review_status(pr_url_datas)
+            categorized_prs = categorize_prs_by_review_status(pr_url_datas)
+            logging.info("Fetched %d PRs", len(categorized_prs["waiting"]) + len(categorized_prs["complete"]))
 
             # send_slack_notification(categorized_prs["waiting"], categorized_prs["complete"], target_label, webhook_url)
 
