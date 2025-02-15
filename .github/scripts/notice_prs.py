@@ -126,8 +126,8 @@ def filter_pull_request(pull_request_list: List[PullRequest], label: str) -> Lis
 def categorize_prs_by_review_status(pull_request_list: List[PullRequest]) -> Dict[str, List[ReviewResult]]:
     waiting_prs, complete_prs = [], []
 
-    logging.error("TestLog data: %s", pull_request_list[0])
     for pull_request in pull_request_list:
+        logging.error("TestLog data: %s", pull_request.url)
         approved_reviewers_count = fetch_approved_reviewers_count(pull_request.url)
 
         if approved_reviewers_count < REVIEWER_COUNT_LIMIT:
