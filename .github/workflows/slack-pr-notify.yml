@@ -1,6 +1,6 @@
 on:
   schedule:
-    - cron: '9 22 * * *'  # 日本時間22時（JST）
+    - cron: '13 13 * * *'  # 日本時間22時（JST）
   workflow_dispatch:  # 手動実行用
 
 jobs:
