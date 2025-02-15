@@ -1,6 +1,7 @@
 on:
-  schedule:
-    - cron: "*/5 * * * *"  # 5分ごとに実行 (UTC時間)
+  # schedule:
+  #   - cron: "0 2 * * *"  # 日本時間午前11時 (UTC午前2時)
+  #   - cron: "0 5 * * *"  # 日本時間午後2時 (UTC午前5時)
   workflow_dispatch:  # 手動実行用
 
 jobs:
