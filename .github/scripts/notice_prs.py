@@ -18,56 +18,38 @@ REVIEW_STATUS_COMPLETE = "COMPLETE"
 
 
 class Config:
-    def __init__(self,
-                 owner_name: str,
-                 repo_name: str,
-                 target_label: str,
-                 webhook_url: str):
-        # バリデーション
-        if not owner_name:
-            raise ValueError("owner_name cannot be empty")
-        if not repo_name:
-            raise ValueError("repo_name cannot be empty")
-        if not target_label:
-            raise ValueError("target_label cannot be empty")
-        if not webhook_url:
-            raise ValueError("webhook_url cannot be empty")
+    def __init__(self, owner_name: str, repo_name: str, target_label: str, webhook_url: str):
         self.owner_name = owner_name
         self.repo_name = repo_name
         self.target_label = target_label
         self.webhook_url = webhook_url
+        self._validate()
+
+    def _validate(self):
+        if not all([self.owner_name, self.repo_name, self.target_label, self.webhook_url]):
+            raise ValueError("All Config fields must be non-empty")
 
 class PullRequest:
-    def __init__(self,
-                 url: str,
-                 html_url: str,
-                 isDraft: bool,
-                 label_names: list):
-        # バリデーション
-        if not url:
-            raise ValueError("url cannot be empty")
-        if not html_url:
-            raise ValueError("html_url cannot be empty")
-        if isDraft is None:
-            raise ValueError("isDraft cannot be None")
-        if not label_names:
-            raise ValueError("label_names cannot be empty")
+    def __init__(self, url: str, html_url: str, is_draft: bool, label_names: List[str]):
         self.url = url
         self.html_url = html_url
-        self.isDraft = isDraft
+        self.is_draft = is_draft
         self.label_names = label_names
+        self._validate()
+
+    def _validate(self):
+        if not all([self.url, self.html_url, self.label_names]) or self.is_draft is None:
+            raise ValueError("Invalid PullRequest data")
 
 class ReviewResult:
-    def __init__(self,
-                 pull_request_url: str,
-                 approve_count: int):
-        # バリデーション
-        if not pull_request_url:
-            raise ValueError("url cannot be empty")
-        if approve_count < 0:
-            raise ValueError("approve_count cannot be less than 0")
+    def __init__(self, pull_request_url: str, approve_count: int):
         self.pull_request_url = pull_request_url
         self.approve_count = approve_count
+        self._validate()
+
+    def _validate(self):
+        if not self.pull_request_url or self.approve_count < 0:
+            raise ValueError("Invalid ReviewResult data")
 
 
 def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Config]:
@@ -81,89 +63,66 @@ def load_configs(file_path: str = CONFIG_FILE_PATH) -> List[Config]:
             # Config情報はリスト形式を想定しているため、リストでない場合はエラーを返す
             if not isinstance(config_json_list, list):
                 raise TypeError("Config file must be a list of objects")
-            config_list = [
+            return [
                 Config(
-                    owner_name=config_json.get('owner_name', ''),
-                    repo_name=config_json.get('repo_name', ''),
-                    target_label=config_json.get('target_label', ''),
-                    webhook_url=os.getenv(config_json.get('webhook_secret_name', ''))
+                    owner_name = config_json["owner_name"],
+                    repo_name = config_json["repo_name"],
+                    target_label = config_json["target_label"],
+                    webhook_url = os.getenv(config_json["webhook_secret_name"], "")
                 )
                 for config_json in config_json_list
             ]
-            return config_list
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON format in {file_path}: {e}")
-    except TypeError as e:
-        raise ValueError(f"Incorrect data format in {file_path}: {e}")
+    except (json.JSONDecodeError, TypeError) as e:
+        raise ValueError(f"Invalid config file format: {e}")
 
 
 def get_pull_request_list(owner_name: str, repo_name: str) -> List[PullRequest]:
     api_url = f"https://api.github.com/repos/{owner_name}/{repo_name}/pulls"
     headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
-    logging.info("Fetching Pull Requests from %s", api_url)
-
+    logging.info("Fetching PRs from %s", api_url)
     try:
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
-        pull_request_list = [
+        return [
             PullRequest(
-                url=response_json.get("url", ""),
-                html_url=response_json.get("html_url", ""),
-                isDraft=response_json.get("draft", False),
-                label_names=[label.get("name", "") for label in response_json.get("labels", [])]
+                url=pr["url"],
+                html_url=pr["html_url"],
+                is_draft=pr.get("draft", False),
+                label_names=[label["name"] for label in pr.get("labels", [])]
             )
-            for response_json in response.json()
+            for pr in response.json()
         ]
-        return pull_request_list
-
     except requests.RequestException as e:
-        logging.error("Failed to fetch pull requests: %s", e, exc_info=True)
+        logging.error("Failed to fetch PRs: %s", e, exc_info=True)
         raise
 
 
 def filter_pull_request(pull_request_list: List[PullRequest], label: str) -> List[PullRequest]:
-    logging.info("Filtering PRs by label: %s", label)
-    filtered_pull_request_list = [
-        pull_request
-        for pull_request in pull_request_list
-        if (label in [label_name for label_name in pull_request.label_names]) and not pull_request.isDraft
-    ]
-    return filtered_pull_request_list
+    return [pr for pr in pull_request_list if label in pr.label_names and not pr.is_draft]
 
 
 def get_review_result(pull_request_list: List[PullRequest]) -> Dict[str, List[ReviewResult]]:
-    logging.info("Getting review results")
     waiting_prs, complete_prs = [], []
-
-    for pull_request in pull_request_list:
-        approve_count = get_approve_count(pull_request.url)
-        review_result = ReviewResult(pull_request.html_url, approve_count)
-
+    for pr in pull_request_list:
+        approve_count = get_approve_count(pr.url)
+        result = ReviewResult(pr.html_url, approve_count)
         if approve_count < REVIEW_COMPLETE_LIMIT:
-            waiting_prs.append(review_result )
+            waiting_prs.append(result)
         else:
-            complete_prs.append(review_result)
-
+            complete_prs.append(result)
     return {REVIEW_STATUS_WAITING: waiting_prs, REVIEW_STATUS_COMPLETE: complete_prs}
 
 
 def get_approve_count(url: str) -> int:
     api_url = f"{url}/reviews"
+    headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
     try:
-        response = requests.get(api_url, headers={"Authorization": f"token {DEV_OPS_TOKEN}"})
+        response = requests.get(api_url, headers=headers)
         response.raise_for_status()
-        response_json = response.json()
-
-        # ユーザーIDで重複を排除
-        approved_reviews = {
-            review["user"]["id"]: review
-            for review in response_json if review["state"] == "APPROVED"
-        }
-
-        # 重複を排除した承認者の数を返す
+        approved_reviews = {review["user"]["id"] for review in response.json() if review["state"] == "APPROVED"}
         return len(approved_reviews)
     except requests.RequestException as e:
-        logging.error("Failed to fetch reviews for PR %s: %s", api_url, e)
+        logging.error("Failed to fetch reviews: %s", e)
         raise
 
 
@@ -193,26 +152,18 @@ def send_slack_notification(waiting_prs: List[ReviewResult], complete_prs: List[
 
 def main():
     try:
-        configs = load_configs()
-        for config in configs:
-            pull_request_list = get_pull_request_list(config.owner_name, config.repo_name)
-            if not pull_request_list:
-                logging.warning("No PRs found. Skipping...")
-                continue
-
-            filtered_pull_request_list = filter_pull_request(pull_request_list, config.target_label)
-            review_result = get_review_result(filtered_pull_request_list)
-
+        for config in load_configs():
+            pr_list = get_pull_request_list(config.owner_name, config.repo_name)
+            filtered_prs = filter_pull_request(pr_list, config.target_label)
+            review_result = get_review_result(filtered_prs)
             send_slack_notification(
                 waiting_prs = review_result[REVIEW_STATUS_WAITING],
                 complete_prs = review_result[REVIEW_STATUS_COMPLETE],
                 label = config.target_label,
                 webhook_url = config.webhook_url
             )
-
     except Exception as e:
         logging.error("An error occurred: %s", e, exc_info=True)
-        return
 
 if __name__ == "__main__":
     main()
