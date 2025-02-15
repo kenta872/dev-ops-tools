@@ -116,7 +116,7 @@ def fetch_pull_requests(owner_name: str, repo_name: str) -> List[PullRequest]:
 
 def filter_pull_request(pull_request_list: List[PullRequest], label: str) -> List[PullRequest]:
     filtered_pulll_request_list = [
-        {"html_url": pull_request.html_url, "url": pull_request.url}
+        pull_request
         for pull_request in pull_request_list
         if label in [label_name for label_name in pull_request.label_names] and not pull_request.draft
     ]
