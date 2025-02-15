@@ -127,7 +127,6 @@ def categorize_prs_by_review_status(pull_request_list: List[PullRequest]) -> Dic
     waiting_prs, complete_prs = [], []
 
     for pull_request in pull_request_list:
-        logging.error("TestLog data: %s", pull_request.url)
         approved_reviewers_count = fetch_approved_reviewers_count(pull_request.url)
 
         if approved_reviewers_count < REVIEWER_COUNT_LIMIT:
@@ -168,11 +167,11 @@ def fetch_approved_reviewers_count(pr_url: str) -> int:
         return 0
 
 
-def format_pr_list(prs: List[Dict[str, Any]]) -> str:
-    if not prs:
-        return "なし"
+def format_pr_list(review_results: List[ReviewResult]) -> str:
+    if not review_results:
+        return "Nothing to show."
 
-    return "\n".join(f"- <{pr['pull_request_url']}> ( レビュー完了: {pr['approved_reviewers_count']}人 )" for pr in prs)
+    return "\n".join(f"- <{review_result.pull_request_url}> ( レビュー完了: {review_result.approve_count}人 )" for review_result in review_results)
 
 
 def send_slack_notification(waiting_prs: List[Dict[str, Any]], complete_prs: List[Dict[str, Any]], label: str, webhook_url: str):
