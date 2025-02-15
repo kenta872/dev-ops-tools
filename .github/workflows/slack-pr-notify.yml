@@ -1,6 +1,6 @@
 on:
   schedule:
-    - cron: '14 22 * * *'  # 日本時間22時（JST）
+    - cron: "*/5 * * * *"  # 5分ごとに実行 (UTC時間)
   workflow_dispatch:  # 手動実行用
 
 jobs:
