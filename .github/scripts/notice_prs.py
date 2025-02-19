@@ -42,13 +42,15 @@ class PullRequest:
             raise ValueError("Invalid PullRequest data")
 
 class ReviewResult:
-    def __init__(self, pull_request_url: str, approve_count: int):
+    def __init__(self, pull_request_url: str, reviewed_count: int, approved_count: int, commented_count: int):
         self.pull_request_url = pull_request_url
-        self.approve_count = approve_count
+        self.reviewed_count = reviewed_count
+        self.approved_count = approved_count
+        self.commented_count = commented_count
         self._validate()
 
     def _validate(self):
-        if not self.pull_request_url or self.approve_count < 0:
+        if not self.pull_request_url or self.reviewed_count or self.approved_count < 0 or self.commented_count < 0:
             raise ValueError("Invalid ReviewResult data")
 
 
@@ -104,23 +106,36 @@ def filter_pull_request(pull_request_list: List[PullRequest], label: str) -> Lis
 def get_review_result(pull_request_list: List[PullRequest]) -> Dict[str, List[ReviewResult]]:
     waiting_prs, complete_prs = [], []
     for pr in pull_request_list:
-        approve_count = get_approve_count(pr.url)
-        result = ReviewResult(pr.html_url, approve_count)
-        if approve_count < REVIEW_COMPLETE_LIMIT:
-            waiting_prs.append(result)
+        review_result = get_review_counts(pr)
+        if review_result.reviewed_count == 0:
+            waiting_prs.append(review_result)
         else:
-            complete_prs.append(result)
+            complete_prs.append(review_result)
     return {REVIEW_STATUS_WAITING: waiting_prs, REVIEW_STATUS_COMPLETE: complete_prs}
 
 
-def get_approve_count(url: str) -> int:
-    api_url = f"{url}/reviews"
+def get_review_counts(pr: PullRequest) -> ReviewResult:
+    api_url = f"{pr.url}/reviews"
     headers = {"Authorization": f"token {DEV_OPS_TOKEN}"}
     try:
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
-        approved_reviews = {review["user"]["id"] for review in response.json() if review["state"] == "APPROVED"}
-        return len(approved_reviews)
+        
+        reviews = response.json()
+        reviewed_users = set()
+        approved_users = set()
+        commented_users = set()
+        
+        for review in reviews:
+            user_id = review["user"]["id"]
+            state = review["state"]
+            reviewed_users.add(user_id)
+            if state == "APPROVED":
+                approved_users.add(user_id)
+            if state == "COMMENTED":
+                commented_users.add(user_id)
+        
+        return ReviewResult(pr.html_url, len(reviewed_users), len(approved_users), len(commented_users))
     except requests.RequestException as e:
         logging.error("Failed to fetch reviews: %s", e)
         raise
@@ -130,7 +145,7 @@ def format_notification_message(review_results: List[ReviewResult]) -> str:
     if not review_results:
         return "なし"
 
-    return "\n".join(f"- <{review_result.pull_request_url}> ( レビュー完了: {review_result.approve_count}人 )" for review_result in review_results)
+    return "\n".join(f"- <{review_result.pull_request_url}> ( approve: {review_result.approved_count}人, comment: {review_result.commented_count}人 )" for review_result in review_results)
 
 
 def send_slack_notification(waiting_prs: List[ReviewResult], complete_prs: List[ReviewResult], label: str, webhook_url: str):
@@ -138,7 +153,7 @@ def send_slack_notification(waiting_prs: List[ReviewResult], complete_prs: List[
     message = (
         f":page_facing_up: [{label}] プルリクエストレビュー状況\n\n"
         "------------------------\n"
-        f"*レビュー待ちPR ( {len(waiting_prs)} 件 )*\n{format_notification_message(waiting_prs)}\n\n\n"
+        f"*未レビューPR ( {len(waiting_prs)} 件 )*\n{format_notification_message(waiting_prs)}\n\n\n"
         f"*レビュー完了PR ( {len(complete_prs)} 件 )*\n{format_notification_message(complete_prs)}"
     )
     payload = {"text": message}
