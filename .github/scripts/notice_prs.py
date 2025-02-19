@@ -122,20 +122,16 @@ def get_review_counts(pr: PullRequest) -> ReviewResult:
         response.raise_for_status()
         
         reviews = response.json()
-        reviewed_users = set()
-        approved_users = set()
-        commented_users = set()
-        
+        latest_review_state = {}
+
         for review in reviews:
             user_id = review["user"]["id"]
-            state = review["state"]
-            reviewed_users.add(user_id)
-            if state == "APPROVED":
-                approved_users.add(user_id)
-            if state == "COMMENTED":
-                commented_users.add(user_id)
-        
-        return ReviewResult(pr.html_url, len(reviewed_users), len(approved_users), len(commented_users))
+            latest_review_state[user_id] = review["state"]
+
+        approved_users = {user_id for user_id, state in latest_review_state.items() if state == "APPROVED"}
+        commented_users = {user_id for user_id, state in latest_review_state.items() if state == "COMMENTED"}
+
+        return ReviewResult(pr.html_url, len(latest_review_state), len(approved_users), len(commented_users))
     except requests.RequestException as e:
         logging.error("Failed to fetch reviews: %s", e)
         raise
