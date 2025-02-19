@@ -153,8 +153,8 @@ def send_slack_notification(waiting_prs: List[ReviewResult], complete_prs: List[
     message = (
         f":page_facing_up: [{label}] プルリクエストレビュー状況\n\n"
         "------------------------\n"
-        f"*未レビューPR ( {len(waiting_prs)} 件 )*\n{format_notification_message(waiting_prs)}\n\n\n"
-        f"*レビュー中PR ( {len(complete_prs)} 件 )*\n{format_notification_message(complete_prs)}"
+        f"*未レビュー ( {len(waiting_prs)} 件 )*\n{format_notification_message(waiting_prs)}\n\n\n"
+        f"*レビュー中 ( {len(complete_prs)} 件 )*\n{format_notification_message(complete_prs)}"
     )
     payload = {"text": message}
 
