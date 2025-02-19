@@ -88,7 +88,7 @@ def get_pull_request_list(owner_name: str, repo_name: str) -> List[PullRequest]:
         response.raise_for_status()
         return [
             PullRequest(
-                assignee_id=pr["assignee"]["id"],
+                assignee_id=pr["assignee"]["id"] if pr["assignee"] else None,
                 url=pr["url"],
                 html_url=pr["html_url"],
                 is_draft=pr.get("draft", False),
