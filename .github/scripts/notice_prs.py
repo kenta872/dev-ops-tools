@@ -4,7 +4,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Any, Dict, List
-
+import sys
 
 # ログの設定
 logging.basicConfig(level=logging.INFO)
@@ -166,6 +166,7 @@ def send_slack_notification(waiting_prs: List[ReviewResult], complete_prs: List[
 
 
 def main():
+    sys.exit(1)
     try:
         for config in load_configs():
             pr_list = get_pull_request_list(config.owner_name, config.repo_name)
@@ -179,6 +180,7 @@ def main():
             )
     except Exception as e:
         logging.error("An error occurred: %s", e, exc_info=True)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
