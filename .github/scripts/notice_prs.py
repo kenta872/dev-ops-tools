@@ -30,7 +30,8 @@ class Config:
             raise ValueError("All Config fields must be non-empty")
 
 class PullRequest:
-    def __init__(self, url: str, html_url: str, is_draft: bool, label_names: List[str]):
+    def __init__(self, assignee_id: int, url: str, html_url: str, is_draft: bool, label_names: List[str]):
+        self.assignee_id = assignee_id
         self.url = url
         self.html_url = html_url
         self.is_draft = is_draft
@@ -87,6 +88,7 @@ def get_pull_request_list(owner_name: str, repo_name: str) -> List[PullRequest]:
         response.raise_for_status()
         return [
             PullRequest(
+                assignee_id=pr["assignee"]["id"],
                 url=pr["url"],
                 html_url=pr["html_url"],
                 is_draft=pr.get("draft", False),
@@ -126,6 +128,8 @@ def get_review_counts(pr: PullRequest) -> ReviewResult:
 
         for review in reviews:
             user_id = review["user"]["id"]
+            if user_id == pr.assignee_id:
+                continue
             latest_review_state[user_id] = review["state"]
 
         approved_users = {user_id for user_id, state in latest_review_state.items() if state == "APPROVED"}
