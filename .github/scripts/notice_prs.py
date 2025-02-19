@@ -50,7 +50,7 @@ class ReviewResult:
         self._validate()
 
     def _validate(self):
-        if not self.pull_request_url or self.reviewed_count or self.approved_count < 0 or self.commented_count < 0:
+        if not self.pull_request_url or self.reviewed_count < 0 or self.approved_count < 0 or self.commented_count < 0:
             raise ValueError("Invalid ReviewResult data")
 
 
