@@ -86,9 +86,10 @@ def get_pull_request_list(owner_name: str, repo_name: str) -> List[PullRequest]:
     try:
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
+        logging.info("Fetched PRs: %s", response.json())
         return [
             PullRequest(
-                assignee_id=pr["assignee"]["id"] if pr["assignee"] else None,
+                assignee_id=pr["merge_commit_sha"],
                 url=pr["url"],
                 html_url=pr["html_url"],
                 is_draft=pr.get("draft", False),
