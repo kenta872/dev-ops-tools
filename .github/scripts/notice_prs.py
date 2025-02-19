@@ -30,7 +30,7 @@ class Config:
             raise ValueError("All Config fields must be non-empty")
 
 class PullRequest:
-    def __init__(self, assignee_id: int, url: str, html_url: str, is_draft: bool, label_names: List[str]):
+    def __init__(self, assignee_id: str, url: str, html_url: str, is_draft: bool, label_names: List[str]):
         self.assignee_id = assignee_id
         self.url = url
         self.html_url = html_url
@@ -39,7 +39,7 @@ class PullRequest:
         self._validate()
 
     def _validate(self):
-        if not all([self.url, self.html_url, self.label_names]) or self.is_draft is None:
+        if not all([self.assignee_id, self.url, self.html_url, self.label_names]) or self.is_draft is None:
             raise ValueError("Invalid PullRequest data")
 
 class ReviewResult:
