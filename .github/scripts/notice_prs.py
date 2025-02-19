@@ -166,7 +166,6 @@ def send_slack_notification(waiting_prs: List[ReviewResult], complete_prs: List[
 
 
 def main():
-    sys.exit(1)
     try:
         for config in load_configs():
             pr_list = get_pull_request_list(config.owner_name, config.repo_name)
